@@ -11,21 +11,24 @@ struct Information
     vector<string>* dictionary;
 };
 
-string* ConstructString(vector<char>::iterator iter,int end)
+string* ConstructString(vector<char>::iterator iter,int end, vector<char>::iterator enditer)
 {
     string* str = new string;
-    for (vector<char>::iterator it = iter; it < (iter + end); it++)
-        str->push_back(*it);
+    if (enditer - iter > end)
+        for (vector<char>::iterator it = iter; it < (iter + end); it++)
+            str->push_back(*it);
+    else
+        *str = "";
     return str;
 }
 
-int FindIndex(vector<char>::iterator iter,vector<string>& dict,int index)
+int FindIndex(vector<char>::iterator iter,vector<string>& dict,int index, vector<char>::iterator enditer)
 {
     int len = 0, pos = 0;
     for (size_t i = 0; i < index; i++)
     {
         int curlen = dict[i].length();
-        string* str = ConstructString(iter, curlen);
+        string* str = ConstructString(iter, curlen,enditer);
         if (dict[i] == *str && curlen > len)
             pos = i, len = curlen;
         delete str;
@@ -42,9 +45,9 @@ Information& Lempel_Ziv(vector<char>& vec)
 
     for (vector<char>::iterator it = vec.begin() ;it  != vec.end(); )
     {
-        int curindex = FindIndex(it,*dict,dict->size());
+        int curindex = FindIndex(it,*dict,dict->size(),vec.end());
         int length = (*dict)[curindex].length();
-        code->push_back(make_pair(curindex, (length == 0)?*it:*(it+1)));
+        code->push_back(make_pair(curindex, (length == 0)?*it:*(it+length)));
         dict->push_back((*dict)[curindex] + *(it + length));
         it += length + 1;
     }
@@ -52,6 +55,20 @@ Information& Lempel_Ziv(vector<char>& vec)
     inf->code = code;
     inf->dictionary = dict;
     return *inf;
+}
+
+void decode_Lempel_Ziv(ofstream& ofs,vector<pair<int, char>>* code)
+{
+    vector<string>* dict = new vector<string>;
+    dict->push_back("");
+    for (vector<pair<int, char>>::iterator iter = code->begin(); iter != code->end(); iter++)
+    {
+        int p = (*iter).first;
+        char q = (*iter).second;
+        
+        dict->push_back((*dict)[p] + q);
+        ofs << dict->back();
+    }
 }
 
 void printvec(vector<string>& vec)
@@ -86,7 +103,11 @@ int main()
     obj = Lempel_Ziv(vec);
     printvec(*obj.dictionary);
     ofstream ofs("compressed_data.txt");
+    
+    cout << obj.code->size() * 3;
     writepairs(ofs, obj);
-
+    ofs.close();
+    ofs.open("decoded_version.txt");
+    decode_Lempel_Ziv(ofs, obj.code);
 }
 
