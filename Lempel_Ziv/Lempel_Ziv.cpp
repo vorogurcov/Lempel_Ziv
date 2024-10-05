@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <string>
 
 using namespace std;
 
@@ -71,7 +72,7 @@ void decode_Lempel_Ziv(ofstream& ofs,vector<pair<int, char>>* code)
     }
 }
 
-void printvec(vector<string>& vec)
+void printvec(const vector<string>& vec)
 {
     for (auto& el : vec)
     {
@@ -88,26 +89,91 @@ void writepairs(ofstream& ofs,Information& inf)
 }
 int main()
 {
-    std::ifstream ifs("test.txt");
-    vector<char> vec;
-    if (ifs.is_open())
+    bool state;
+    string filename ="";
+    cout << "Type in 1 to compress, type 0 to decompress.\n";
+    cin >> state;
+    if (state == true)
     {
-        while (!ifs.eof())
+        cout << "Type in the name of the file which you need to compress \n";
+        cin >> filename;
+
+        std::ifstream ifs(filename + ".txt");
+        vector<char> vec;
+        if (ifs.is_open())
         {
-            vec.push_back(ifs.get());
+            while (!ifs.eof())
+            {
+                vec.push_back(ifs.get());
+            }
+            vec.pop_back();
+            ifs.close();
         }
-        vec.pop_back();
+        else
+        {
+            cout << "ERROR! The file does not exist!";
+            return 666;
+        }
+
+
+        Information obj;
+        cout << "\Compressing using Lempel_Ziv...\n";
+
+        obj = Lempel_Ziv(vec);
+        cout << "Success! Compressed version of " << filename << ".txt takes only \n";
+        cout << obj.code->size() * 3 << " bytes!";
+        printvec(*obj.dictionary);
+        ofstream ofs("compressed_data.txt");
+        writepairs(ofs, obj);
     }
-    ifs.close();
-    Information obj;
-    obj = Lempel_Ziv(vec);
-    printvec(*obj.dictionary);
-    ofstream ofs("compressed_data.txt");
+    else
+    {
+        cout << "Type in the name of the file which you need to decompress \n";
+        cin >> filename;
+        
+        ifstream ifs(filename + ".txt");
+        vector<pair<int, char>> code;
+        if (ifs.is_open())
+        {
+            while (!ifs.eof())
+            {
+                string data;
+                //getline(ifs, data);
+                char symb;
+                int d = 0;
+                char sym;
+                while (ifs.get(symb))
+                {
+                    
+                    if (isdigit(symb))
+                    {
+                        data.push_back(symb);
+                    }
+                    else
+                    {
+                        sym = symb;
+                        break;
+                    }
+                }
+                    
+                if (data == "")
+                    continue;
+                d = stoi(data);
+                code.push_back(make_pair(d,sym));
+            }
+            
+            ifs.close();
+        }
+        else
+        {
+            cout << "ERROR! The file does not exist!";
+            return 666;
+        }
+        ifs.close();
+        ofstream ofs;
+        ofs.open("decoded_version.txt");
+        decode_Lempel_Ziv(ofs, &code);
+    }
     
-    cout << obj.code->size() * 3;
-    writepairs(ofs, obj);
-    ofs.close();
-    ofs.open("decoded_version.txt");
-    decode_Lempel_Ziv(ofs, obj.code);
 }
 
